@@ -5,7 +5,8 @@ import { memo } from 'react';
 import ModelIcon from '@/components/ModelIcon';
 import ModelTag from '@/components/ModelTag';
 import { OPENAI_MODEL_LIST } from '@/constants/openai';
-import { configSelectors, useSettingStore } from '@/store/setting';
+import useSessionContext from '@/hooks/useSessionContext';
+import { useAgentStore } from '@/store/agent';
 
 const useStyles = createStyles(({ css, prefixCls }) => ({
   menu: css`
@@ -31,17 +32,17 @@ const useStyles = createStyles(({ css, prefixCls }) => ({
 
 const ModelSelect = memo(() => {
   const { styles } = useStyles();
-  const [model, setOpenAIConfig] = useSettingStore((s) => [
-    configSelectors.currentOpenAIConfig(s)?.model,
-    s.setOpenAIConfig,
-  ]);
+
+  const { updateChatModel } = useAgentStore();
+
+  const model = useSessionContext()?.sessionAgent?.chatModel?.model;
 
   const items = OPENAI_MODEL_LIST.map((item) => {
     return {
       icon: <ModelIcon model={item.id} size={18} />,
       key: item.id,
       label: item.displayName,
-      onClick: () => setOpenAIConfig({ model: item.id }),
+      onClick: () => updateChatModel({ model: item.id }),
     };
   });
 

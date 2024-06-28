@@ -1,7 +1,7 @@
 import { nanoid } from 'ai';
 import { produce } from 'immer';
 import { DeepPartial } from 'utility-types';
-import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
+import { createJSONStorage, devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 import { createWithEqualityFn } from 'zustand/traditional';
 import { StateCreator } from 'zustand/vanilla';
@@ -18,6 +18,7 @@ import {
 } from '@/constants/tts';
 import { TouchActionType, touchReducer } from '@/store/agent/reducers/touch';
 import { Agent, AgentMeta, GenderEnum } from '@/types/agent';
+import { ChatStreamPayload } from '@/types/openai/chat';
 import { TouchAction, TouchAreaEnum } from '@/types/touch';
 import { TTS } from '@/types/tts';
 import { mergeWithUndefined } from '@/utils/common';
@@ -27,7 +28,7 @@ import storage from '@/utils/storage';
 import { initialState } from './initialState';
 import { agentSelectors } from './selectors/agent';
 
-const AGENT_STORAGE_KEY = 'vidol-chat-agent-storage';
+export const AGENT_STORAGE_KEY = 'vidol-chat-agent-storage';
 
 export interface AgentStore {
   /**
@@ -104,6 +105,10 @@ export interface AgentStore {
    * 更新角色 TTS
    */
   updateAgentTTS: (tts: DeepPartial<TTS>) => void;
+  /**
+   * 更新角色对话模型配置
+   */
+  updateChatModel: (chatModel: Partial<ChatStreamPayload>) => void;
   /**
    * 更新触摸配置
    * @param currentTouchArea
@@ -294,6 +299,10 @@ const createAgentStore: StateCreator<AgentStore, [['zustand/devtools', never]]> 
     await storage.removeItem(getModelPathByAgentId(agentId));
     set({ currentIdentifier: LOBE_VIDOL_DEFAULT_AGENT_ID, localAgentList: newList });
   },
+  updateChatModel: (chatModel) => {
+    const { updateAgentConfig } = get();
+    updateAgentConfig({ chatModel });
+  },
 });
 
 export const useAgentStore = createWithEqualityFn<AgentStore>()(
@@ -304,6 +313,9 @@ export const useAgentStore = createWithEqualityFn<AgentStore>()(
       }),
       {
         name: AGENT_STORAGE_KEY,
+        storage: createJSONStorage(() => storage),
+        version: 0,
+        skipHydration: true,
       },
     ),
   ),
